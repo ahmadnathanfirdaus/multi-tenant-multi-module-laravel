@@ -6,25 +6,121 @@ Aplikasi multi-tenant sederhana yang dibangun dengan Laravel 11 dan Livewire 3. 
 
 - **Multi-tenant Architecture**: Setiap tenant diidentifikasi melalui subdomain
 - **Tenant Isolation**: Data setiap tenant terpisah secara otomatis
-- **Livewire Components**: Interface yang reaktif untuk manajemen posts
-- **CRUD Operations**: Buat, baca, update, dan hapus posts per tenant
+- **Role-based Access Control**: 3 level role (superadmin, admin, user)
+- **Module Management System**: SuperAdmin dapat mengaktifkan/menonaktifkan module untuk setiap tenant
+- **Dynamic Module Access**: User tenant hanya dapat mengakses module yang diaktifkan
+- **5 Sample Modules**: Blog, CRM, Inventory, Analytics, dan Support
+- **Module-Specific Routes**: Setiap module memiliki routes dan middleware access control
+- **Livewire Components**: Interface yang reaktif untuk manajemen
+- **CRUD Operations**: Operasi lengkap untuk setiap module
+- **User Management**: Admin dapat mengelola users dalam tenant mereka
+- **Tenant Management**: SuperAdmin dapat mengelola semua tenant dan module assignments
+- **Analytics Dashboard**: Dashboard analitik untuk melihat aktivitas tenant
 - **Responsive Design**: UI yang responsive menggunakan Tailwind CSS
+
+## Sistem Role
+
+### 1. **SuperAdmin**
+- Dapat mengakses semua tenant dan data
+- Dapat membuat, edit, dan hapus tenant
+- Dapat mengelola semua users di semua tenant
+- **Dapat mengelola module global dan mengaktifkan/menonaktifkan module untuk tenant**
+- Akses melalui route `/admin/*`
+- Tidak terikat pada tenant tertentu
+
+### 2. **Admin** (per tenant)
+- Dapat mengelola users dalam tenant mereka
+- **Dapat mengakses semua module yang diaktifkan untuk tenant mereka**
+- **Dapat mengelola data dalam module yang tersedia (Blog, CRM, Inventory, Support)**
+- Tidak dapat mengakses data tenant lain
+- Terikat pada tenant tertentu
+
+### 3. **User** (per tenant)
+- **Dapat mengakses module yang diaktifkan untuk tenant mereka**
+- **Dapat mengelola data mereka sendiri dalam module yang tersedia**
+- Tidak dapat mengelola users lain
+- Akses terbatas berdasarkan module yang diaktifkan
 
 ## Struktur Multi-Tenant
 
 ### Komponen Utama:
 
 1. **Tenant Model**: Menyimpan informasi tenant (nama, subdomain, dll)
-2. **Tenant Middleware**: Mendeteksi tenant berdasarkan subdomain dan mengatur konteks
-3. **BelongsToTenant Trait**: Memastikan model secara otomatis di-scope ke tenant aktif
-4. **PostManager Livewire Component**: Interface untuk mengelola posts per tenant
+2. **Module Model**: Menyimpan informasi module global yang tersedia
+3. **Tenant-Module Relationship**: Many-to-many relationship untuk mengatur module per tenant
+4. **Tenant Middleware**: Mendeteksi tenant berdasarkan subdomain dan mengatur konteks
+5. **Module Access Middleware**: Mengontrol akses ke module berdasarkan tenant
+6. **BelongsToTenant Trait**: Memastikan model secara otomatis di-scope ke tenant aktif
+7. **Module Management Components**: Interface untuk SuperAdmin mengelola module
 
 ### Cara Kerja:
 
 1. User mengakses aplikasi melalui subdomain (contoh: `demo.localhost:8000`)
-2. Middleware mendeteksi subdomain dan mengidentifikasi tenant
-3. Semua query database secara otomatis di-scope ke tenant tersebut
-4. User hanya bisa melihat dan mengelola data milik tenant-nya
+2. Tenant Middleware mendeteksi subdomain dan mengidentifikasi tenant
+3. Module Access Middleware memeriksa apakah tenant memiliki akses ke module yang diminta
+4. Semua query database secara otomatis di-scope ke tenant tersebut
+5. User hanya bisa melihat dan mengelola data milik tenant-nya dalam module yang diaktifkan
+6. SuperAdmin dapat mengaktifkan/menonaktifkan module untuk setiap tenant melalui admin panel
+
+## Module Management System
+
+### Available Modules:
+
+1. **Blog Module** (`/modules/blog`)
+   - Manajemen artikel dan konten blog
+   - CRUD operations untuk blog posts
+   - Status: draft, published
+   - Features: title, excerpt, content, publish date
+
+2. **CRM Module** (`/modules/crm`)
+   - Customer Relationship Management
+   - Manajemen kontak dan leads
+   - Status: lead, prospect, customer, inactive
+   - Features: contact info, company, deal value
+
+3. **Inventory Module** (`/modules/inventory`)
+   - Manajemen stok dan produk
+   - Tracking inventory levels
+   - Features: SKU, pricing, stock quantity, suppliers
+
+4. **Analytics Module** (`/modules/analytics`)
+   - Dashboard analitik dan laporan
+   - Overview statistik tenant
+   - Charts dan visualisasi data
+
+5. **Support Module** (`/modules/support`)
+   - Sistem tiket support pelanggan
+   - Priority levels: low, medium, high, urgent
+   - Status tracking: open, in_progress, resolved, closed
+
+### Module Access Control:
+
+- **SuperAdmin**: Akses ke semua module dan dapat mengelola module assignments
+- **Tenant Users**: Hanya dapat mengakses module yang diaktifkan untuk tenant mereka
+- **Dynamic Navigation**: Menu navigasi menampilkan hanya module yang tersedia
+- **Middleware Protection**: Setiap module route dilindungi oleh `module.access` middleware
+
+## Authentication System
+
+### Login Features:
+- **Secure Login**: Standard Laravel authentication dengan session management
+- **Quick Login**: Demo buttons untuk testing dengan satu klik
+- **Auto Redirect**: User diarahkan ke halaman yang sesuai berdasarkan role dan tenant
+- **Guest Protection**: User yang sudah login tidak bisa mengakses halaman login
+- **Auth Protection**: Semua routes dilindungi dengan auth middleware
+
+### Login Flow:
+1. **Guest User** → Diarahkan ke `/login`
+2. **Login Success** → Redirect berdasarkan role:
+   - SuperAdmin → `/admin/tenants`
+   - Tenant User → `/?tenant={subdomain}`
+3. **Logout** → Kembali ke `/login` dengan session cleared
+
+### Security Features:
+- Session regeneration setelah login
+- CSRF protection pada form login
+- Password hashing dengan bcrypt
+- Middleware protection untuk semua protected routes
 
 ## Instalasi
 
@@ -73,30 +169,69 @@ Aplikasi multi-tenant sederhana yang dibangun dengan Laravel 11 dan Livewire 3. 
 
 ## Penggunaan
 
+### Login System:
+1. **Halaman Login**: `http://127.0.0.1:8000/login`
+2. **Quick Login Buttons**: Klik tombol untuk login cepat dengan demo accounts
+3. **Auto Redirect**: Setelah login, user akan diarahkan ke halaman yang sesuai:
+   - **SuperAdmin** → `/admin/tenants`
+   - **Tenant Users** → `/?tenant={subdomain}` (dashboard tenant)
+
 ### Testing Multi-Tenant
 
 Aplikasi ini membuat 3 tenant demo:
 
 1. **Demo Company** - Subdomain: `demo`
-2. **Test Corporation** - Subdomain: `test`  
+2. **Test Corporation** - Subdomain: `test`
 3. **Sample Inc** - Subdomain: `sample`
 
 ### Cara Mengakses:
 
-#### Untuk Development (localhost):
-- Kunjungi: `http://localhost:8000?tenant=demo`
-- Atau: `http://localhost:8000?tenant=test`
-- Atau: `http://localhost:8000?tenant=sample`
+#### SuperAdmin Panel:
+- `http://127.0.0.1:8000/admin/tenants` - Kelola semua tenant
+- `http://127.0.0.1:8000/admin/modules` - Kelola module global
+- `http://127.0.0.1:8000/admin/tenant-modules` - Assign module ke tenant
+- `http://127.0.0.1:8000/admin/users` - Kelola semua users
 
-#### Untuk Production (dengan subdomain real):
-- `http://demo.yourdomain.com`
-- `http://test.yourdomain.com`
-- `http://sample.yourdomain.com`
+#### Tenant Admin/User Panel:
+- `http://127.0.0.1:8000?tenant=demo` - Demo Company (Blog, CRM, Analytics)
+- `http://127.0.0.1:8000?tenant=test` - Test Corporation (Blog, Inventory, Support)
+- `http://127.0.0.1:8000?tenant=sample` - Sample Inc (CRM, Inventory, Analytics, Support)
 
-### Default Users:
-- Email: `admin@demo.com` / Password: `password`
-- Email: `admin@test.com` / Password: `password`
-- Email: `admin@sample.com` / Password: `password`
+#### Module Access per Tenant:
+- `http://127.0.0.1:8000/modules/blog?tenant=demo` - Blog module (Demo)
+- `http://127.0.0.1:8000/modules/crm?tenant=demo` - CRM module (Demo)
+- `http://127.0.0.1:8000/modules/analytics?tenant=demo` - Analytics module (Demo)
+- `http://127.0.0.1:8000/users?tenant=demo` - User management (Demo)
+
+### Demo Accounts:
+- **SuperAdmin**: `superadmin@example.com` / `password`
+- **Demo Company Admin**: `admin@demo.com` / `password` (Blog, CRM, Analytics)
+- **Test Corporation Admin**: `admin@test.com` / `password` (Blog, Inventory, Support)
+- **Sample Inc Admin**: `admin@sample.com` / `password` (CRM, Inventory, Analytics, Support)
+- **Demo User**: `user@demo.com` / `password`
+- **Test User**: `user@test.com` / `password`
+- **Sample User**: `user@sample.com` / `password`
+
+## Testing Module Management
+
+### Test SuperAdmin Module Management:
+1. Login sebagai SuperAdmin (`superadmin@example.com`)
+2. Akses `/admin/modules` untuk mengelola module global
+3. Akses `/admin/tenant-modules` untuk mengatur module per tenant
+4. Test enable/disable module untuk tenant tertentu
+
+### Test Tenant Module Access:
+1. Login sebagai tenant admin (contoh: `admin@demo.com`)
+2. Cek dashboard untuk melihat module yang tersedia
+3. Test akses ke module yang diaktifkan (Blog, CRM, Analytics untuk Demo)
+4. Test akses ditolak ke module yang tidak diaktifkan (Inventory, Support untuk Demo)
+
+### Test Module Functionality:
+1. **Blog Module**: Create, edit, delete blog posts
+2. **CRM Module**: Manage contacts and leads
+3. **Inventory Module**: Manage products and stock
+4. **Analytics Module**: View tenant statistics
+5. **Support Module**: Create and manage support tickets
 
 ## Fitur PostManager
 
@@ -106,25 +241,74 @@ Aplikasi ini membuat 3 tenant demo:
 - **Pagination**: Otomatis menampilkan pagination jika post lebih dari 5
 - **Real-time Updates**: Interface otomatis update tanpa refresh halaman
 
+## Fitur TenantManager (SuperAdmin Only)
+
+- **Buat Tenant Baru**: Membuat tenant dengan subdomain unik
+- **Edit Tenant**: Mengubah nama dan subdomain tenant
+- **Hapus Tenant**: Menghapus tenant beserta semua data (users, posts)
+- **View Tenant**: Link langsung ke website tenant
+- **User Count**: Melihat jumlah users per tenant
+
+## Fitur UserManager (Admin & SuperAdmin)
+
+- **Buat User Baru**: Menambah user dengan role (admin/user)
+- **Edit User**: Mengubah data user dan role
+- **Hapus User**: Menghapus user (kecuali diri sendiri)
+- **Role Management**: Mengatur role user (admin dapat membuat admin lain)
+- **Tenant Scoping**: Admin hanya melihat users dari tenant mereka
+
 ## Arsitektur Kode
 
 ### Models
-- `Tenant`: Model untuk data tenant
+- `Tenant`: Model untuk data tenant dengan relasi ke modules
+- `Module`: Model untuk data module global
 - `User`: Model user dengan relasi ke tenant
-- `Post`: Model post dengan tenant scoping
+- `Post`: Model post dengan tenant scoping (legacy)
+- `BlogPost`: Model untuk blog module
+- `CrmContact`: Model untuk CRM module
+- `InventoryProduct`: Model untuk inventory module
+- `SupportTicket`: Model untuk support module
 
 ### Middleware
 - `TenantMiddleware`: Mendeteksi dan mengatur konteks tenant
+- `ModuleAccessMiddleware`: Mengontrol akses ke module berdasarkan tenant
 
 ### Traits
 - `BelongsToTenant`: Automatic scoping untuk model yang belong to tenant
 
 ### Livewire Components
-- `PostManager`: Komponen untuk CRUD operations posts
+- `PostManager`: Komponen untuk CRUD operations posts (legacy)
+- `ModuleManager`: Komponen untuk SuperAdmin mengelola module global
+- `TenantModuleManager`: Komponen untuk SuperAdmin mengatur module per tenant
+- `ModuleDashboard`: Dashboard untuk menampilkan module yang tersedia
+- `UserManager`: Komponen untuk mengelola users per tenant
+- `TenantManager`: Komponen untuk SuperAdmin mengelola tenant
+
+### Controllers
+- `Modules\BlogController`: Controller untuk blog module
+- `Modules\CrmController`: Controller untuk CRM module
+- `Modules\InventoryController`: Controller untuk inventory module
+- `Modules\SupportController`: Controller untuk support module
+- `Modules\AnalyticsController`: Controller untuk analytics module
 
 ## Customization
 
-### Menambah Model Baru dengan Tenant Scoping:
+### Menambah Module Baru:
+
+1. **Buat Module di Database**:
+```php
+\App\Models\Module::create([
+    'name' => 'Your Module',
+    'slug' => 'your-module',
+    'description' => 'Description of your module',
+    'icon' => 'fas fa-your-icon',
+    'color' => '#FF5733',
+    'is_active' => true,
+    'sort_order' => 10,
+]);
+```
+
+2. **Buat Model dengan Tenant Scoping**:
 
 ```php
 <?php
@@ -134,16 +318,51 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\BelongsToTenant;
 
-class YourModel extends Model
+class YourModuleModel extends Model
 {
     use BelongsToTenant;
-    
+
     protected $fillable = [
         'name',
         'description',
+        'user_id',
         'tenant_id', // pastikan ada ini
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
+```
+
+3. **Buat Controller**:
+```php
+<?php
+
+namespace App\Http\Controllers\Modules;
+
+use App\Http\Controllers\Controller;
+use App\Models\YourModuleModel;
+
+class YourModuleController extends Controller
+{
+    public function index()
+    {
+        $items = YourModuleModel::latest()->paginate(10);
+        return view('modules.your-module.index', compact('items'));
+    }
+
+    // Add other CRUD methods...
+}
+```
+
+4. **Tambahkan Routes dengan Module Access**:
+```php
+Route::middleware(['module.access:your-module'])->prefix('your-module')->name('modules.your-module.')->group(function () {
+    Route::get('/', [YourModuleController::class, 'index'])->name('index');
+    // Add other routes...
+});
 ```
 
 ### Menambah Migration untuk Model Baru:

@@ -22,6 +22,18 @@ class Tenant extends Model
         return $this->hasMany(User::class);
     }
 
+    public function modules()
+    {
+        return $this->belongsToMany(Module::class, 'tenant_modules')
+                    ->withPivot('is_enabled', 'settings')
+                    ->withTimestamps();
+    }
+
+    public function enabledModules()
+    {
+        return $this->modules()->wherePivot('is_enabled', true);
+    }
+
     public function getRouteKeyName()
     {
         return 'subdomain';

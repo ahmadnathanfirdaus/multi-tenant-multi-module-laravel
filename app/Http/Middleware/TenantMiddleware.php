@@ -16,6 +16,11 @@ class TenantMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Skip tenant resolution for superadmin routes
+        if ($request->is('admin/*')) {
+            return $next($request);
+        }
+
         $host = $request->getHost();
 
         // Extract subdomain from host
