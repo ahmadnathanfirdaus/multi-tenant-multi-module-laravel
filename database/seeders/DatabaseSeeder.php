@@ -14,8 +14,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            TenantSeeder::class,
-            ModuleSeeder::class,
+            ModuleSeeder::class,  // Create modules first
+            TenantSeeder::class,  // Then create tenants and assign modules
         ]);
     }
 }

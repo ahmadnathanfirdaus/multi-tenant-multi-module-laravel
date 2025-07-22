@@ -67,10 +67,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/{ticket}/edit', [App\Http\Controllers\Modules\SupportController::class, 'edit'])->name('edit');
         Route::put('/{ticket}', [App\Http\Controllers\Modules\SupportController::class, 'update'])->name('update');
         Route::delete('/{ticket}', [App\Http\Controllers\Modules\SupportController::class, 'destroy'])->name('destroy');
-        // Analytics Module
-        Route::middleware(['module.access:analytics'])->prefix('analytics')->name('modules.analytics.')->group(function () {
-            Route::get('/', [App\Http\Controllers\Modules\AnalyticsController::class, 'index'])->name('index');
-        });
+    });
+
+    // Analytics Module
+    Route::middleware(['module.access:analytics'])->prefix('analytics')->name('modules.analytics.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Modules\AnalyticsController::class, 'index'])->name('index');
     });
 });
 
